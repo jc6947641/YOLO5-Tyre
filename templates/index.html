@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOv5 Object Detection - Webcam</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        #video {
+            border: 2px solid #000;
+            max-width: 90%;
+            height: auto;
+            margin-top: 20px;
+        }
+
+        #canvas {
+            border: 2px solid #000;
+            max-width: 90%;
+            height: auto;
+            margin-top: 20px;
+        }
+
+        .result-container {
+            margin-top: 20px;
+        }
+
+        .results {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .results li {
+            background-color: #f2f2f2;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>YOLOv5 Object Detection - Webcam</h1>
+
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="result-container">
+        <h3>Detection Results:</h3>
+        <ul class="results" id="result-list"></ul>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const resultList = document.getElementById('result-list');
+
+        // 获取摄像头视频流
+        if (navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                })
+                .catch(function(error) {
+                    console.error("Error accessing the webcam: ", error);
+                    alert("Could not access the webcam.");
+                });
+        }
+
+        // 每秒捕获一次视频帧并发送到服务器进行检测
+        function captureFrame() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            // 发送图像到 Flask 后端
+            fetch('/detect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 处理检测结果
+                resultList.innerHTML = '';  // 清除之前的结果
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);  // 重置视频帧
+                if (data.detections) {
+                    data.detections.forEach(det => {
+                        const [x1, y1, x2, y2] = det.bbox;
+                        const label = det.label;  // 只显示标签对应的字符
+                        ctx.strokeStyle = 'red';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);  // 画框
+                        ctx.fillStyle = 'red';
+                        ctx.font = '16px Arial';
+                        ctx.fillText(label, x1, y1 > 10 ? y1 - 5 : 10);
+
+                        // 显示结果
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `Label: ${label}, Bounding Box: [${det.bbox.join(', ')}]`;
+                        resultList.appendChild(listItem);
+                    });
+                }
+            })
+
+            .catch(error => {
+                console.error("Error detecting objects:", error);
+            });
+        }
+
+        // 每秒捕获一次帧
+        setInterval(captureFrame, 1000);
+    </script>
+
+</body>
+</html>

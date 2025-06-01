@@ -1,0 +1,23 @@
+####################################
+## YoloV5模型卡片识别20类 配置文件
+####################################
+# YoloV5模型权重路径
+weight:  "runs/train/exp/weights/best.pt"
+# 输入图像的尺寸
+input_size: 640
+# 类别个数
+#class_num:  2
+# 标签名称
+class_num:  28
+class_name:  ["0", "1",'2','3','4','5','6','7','8','9','A','B','C','D','F','H','L','M','O','P','R','S','T','V','W','X','Z','Y','Q']
+#class_name:  ["nut", "screw"]
+# 标签类的中文名称
+class_name_cn: ["螺母", "螺丝"]
+# 阈值设置
+threshold:
+  iou: 0.8
+  confidence: 0.6
+# 计算设备
+# - cpu
+# - 0 <- 使用GPU
+device: 'cpu'
